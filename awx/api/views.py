@@ -569,18 +569,11 @@ class InstanceDetail(RetrieveUpdateAPIView):
 
 
     def update(self, request, *args, **kwargs):
-        from awx.main.utils.common import get_cpu_capacity, get_mem_capacity, get_system_task_capacity
         r = super(InstanceDetail, self).update(request, *args, **kwargs)
         if status.is_success(r.status_code):
             obj = self.get_object()
             if obj.enabled:
-                cpu = get_cpu_capacity()
-                mem = get_mem_capacity()
-                obj.capacity = get_system_task_capacity(obj.capacity_adjustment)
-                obj.cpu = cpu[0]
-                obj.memory = mem[0]
-                obj.cpu_capacity = cpu[1]
-                obj.mem_capacity = mem[1]
+                obj.refresh_capacity()
             else:
                 obj.capacity = 0
             obj.save()

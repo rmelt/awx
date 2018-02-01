@@ -12,6 +12,7 @@ from django.utils.timezone import now, timedelta
 
 from solo.models import SingletonModel
 
+from awx import __version__ as awx_application_version
 from awx.api.versioning import reverse
 from awx.main.managers import InstanceManager, InstanceGroupManager
 from awx.main.fields import JSONField
@@ -19,6 +20,7 @@ from awx.main.models.inventory import InventoryUpdate
 from awx.main.models.jobs import Job
 from awx.main.models.projects import ProjectUpdate
 from awx.main.models.unified_jobs import UnifiedJob
+from awx.main.utils import get_cpu_capacity, get_mem_capacity, get_system_task_capacity
 
 __all__ = ('Instance', 'InstanceGroup', 'JobOrigin', 'TowerScheduleState',)
 
@@ -93,6 +95,20 @@ class Instance(models.Model):
     def is_controller(self):
         return Instance.objects.filter(rampart_groups__controller__instances=self).exists()
 
+
+    def refresh_capacity(self):
+        cpu = get_cpu_capacity()
+        mem = get_mem_capacity()
+        self.capacity = get_system_task_capacity(self.capacity_adjustment)
+        self.cpu = cpu[0]
+        self.memory = mem[0]
+        self.cpu_capacity = cpu[1]
+        self.mem_capacity = mem[1]
+        self.version = awx_application_version
+        self.save(update_fields=['capacity', 'version', 'modified', 'cpu',
+                                 'memory', 'cpu_capacity', 'mem_capacity'])
+
+    
 
 class InstanceGroup(models.Model):
     """A model representing a Queue/Group of AWX Instances."""
